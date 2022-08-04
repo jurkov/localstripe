@@ -2741,6 +2741,10 @@ class Refund(StripeObject):
             self.balance_transaction = txn.id
             redis_master.set(self._store_key(), pickle.dumps(self))
             schedule_webhook(Event('charge.refunded', charge_obj))
+            
+            if charge_obj._issuing_authorization is not None:
+                authorization: IssuingAuthorization = IssuingAuthorization._api_retrieve(charge_obj._issuing_authorization)
+                authorization._refund(self.amount, txn)
         else:
             redis_master.set(self._store_key(), pickle.dumps(self))
 
@@ -3820,6 +3824,17 @@ class IssuingAuthorization(StripeObject):
         ipi = IssuingPaymentTransaction(self.amount * -1, self.id, txn.id, self.card.id,
                                         self.cardholder, self.merchant_amount, self.merchant_currency,
                                         self.merchant_data, 'capture', wallet=self.wallet)
+        self.transactions.append(ipi)
+
+        redis_master.set(self._store_key(), pickle.dumps(self))
+        schedule_webhook(Event('issuing_authorization.updated', self))
+
+    def _refund(self, amount:int, balance_txn: BalanceTransaction):
+        self.balance_transactions.append(balance_txn)
+
+        ipi = IssuingPaymentTransaction( amount, self.id, balance_txn.id, self.card.id,
+                                        self.cardholder, amount, self.merchant_currency,
+                                        self.merchant_data, 'refund', wallet=self.wallet)
         self.transactions.append(ipi)
 
         redis_master.set(self._store_key(), pickle.dumps(self))
