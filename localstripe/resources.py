@@ -3705,7 +3705,7 @@ class IssuingCard(StripeObject):
     _id_prefix = 'ic_'
     _id_length = 24
 
-    def __init__(self, cardholder=None, currency=None, metadata=None, status=None, type=None):
+    def __init__(self, cardholder=None, currency=None, metadata=None, status=None, type=None, shipping=None):
         try:
             assert _type(cardholder) is str and cardholder
             assert _type(currency) is str and currency
@@ -3714,6 +3714,8 @@ class IssuingCard(StripeObject):
             if status is not None:
                 assert _type(status) is str and status in ["active", "inactive", "blocked"]
             assert _type(type) is str and type in ['physical', 'virtual']
+            if shipping is not None:
+                assert _type(shipping) is dict
 
         except AssertionError:
             raise UserError(400, 'Bad request')
@@ -3735,6 +3737,7 @@ class IssuingCard(StripeObject):
         self.exp_year = datetime.now().year + 3
         self.cvc = '123'
         self.brand = 'Visa'
+        self.shipping = shipping
 
         schedule_webhook(Event('issuing_card.created', self))
         redis_master.set(self._store_key(), pickle.dumps(self))
