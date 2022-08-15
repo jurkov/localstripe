@@ -31,7 +31,7 @@ from aiohttp import web
 from ddtrace.contrib.aiohttp import trace_app
 
 from .resources import BalanceTransaction, Charge, Coupon, Customer, Event, \
-    Invoice, InvoiceItem, PaymentIntent, PaymentMethod, Payout, Plan, \
+    Invoice, InvoiceItem, IssuingDispute, PaymentIntent, PaymentMethod, Payout, Plan, \
     Product, Refund, SetupIntent, Source, Subscription, SubscriptionItem, \
     TaxRate, Token, extra_apis, redis_master, redis_slave, IssuingCard, IssuingCardholder, fetch_all, \
     IssuingAuthorization, EphemeralKey
@@ -319,6 +319,13 @@ for cls in (IssuingAuthorization,):
             ('POST', '/v1/' + cls.object.replace('.', '/') + 's/{id}', api_update),
             ('GET', '/v1/' + cls.object.replace('.', '/') + 's', api_list_all)):
         app.router.add_route(method, url, func(cls, url))
+    
+for cls in (IssuingDispute,):
+    for method, url, func in (
+            ('GET', '/v1/' + cls.object.replace('.', '/') + 's/{id}', api_retrieve),
+            ('GET', '/v1/' + cls.object.replace('.', '/') + 's', api_list_all)):
+        app.router.add_route(method, url, func(cls, url))
+
 
 def localstripe_js(request):
     path = os.path.dirname(os.path.realpath(__file__)) + '/localstripe-v3.js'
