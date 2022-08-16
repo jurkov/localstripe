@@ -4055,7 +4055,7 @@ class IssuingDispute(StripeObject):
         schedule_webhook(Event('issuing_dispute.created', self))
 
     @classmethod
-    def _api_submit(cls, id):
+    def _api_submit(cls, id, metadata: dict):
         obj: IssuingDispute = cls._api_retrieve(id)
         obj.status = 'submitted'
         schedule_webhook(Event('issuing_dispute.submitted', obj))
