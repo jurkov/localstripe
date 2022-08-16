@@ -4021,7 +4021,7 @@ class IssuingDispute(StripeObject):
             assert _type(amount) is int
             assert _type(transaction) is str
             assert _type(evidence) is dict
-            assert _type(currency) is str and currency in ('usd', 'eur', 'cad')
+            assert _type(currency) is str and currency in ('usd', 'eur', 'cad', 'gbp')
             if metadata is not None:
                 assert _type(metadata) is dict
         except AssertionError:
