@@ -4060,6 +4060,7 @@ class IssuingDispute(StripeObject):
         obj: IssuingDispute = cls._api_retrieve(id)
         obj.status = 'submitted'
         schedule_webhook(Event('issuing_dispute.submitted', obj))
+        redis_master.set(obj._store_key(), pickle.dumps(obj))
         return obj
     
     @classmethod
