@@ -4039,8 +4039,9 @@ class IssuingDispute(StripeObject):
         redis_master.set(self._store_key(), pickle.dumps(self))
 
         schedule_webhook(Event('issuing_dispute.created', self))
+
     @classmethod
-    def _api_submit(cls, id: str, **kwargs):
+    def _api_submit(cls, id: str):
         obj: IssuingDispute = cls._api_retrieve(id)
         obj.status = 'submitted'
         schedule_webhook(Event('issuing_dispute.submitted', obj))
@@ -4055,8 +4056,7 @@ class IssuingDispute(StripeObject):
         li._list = list(filter(lambda x: getattr(x, 'transaction', None) == transaction, fetch_all(cls.object + ':*')))
         return li
 
-extra_apis.extend((
-    ('POST', '/v1/issuing/disputes/{id}/submit', IssuingDispute._api_submit)))
+extra_apis.append(('POST', '/v1/issuing/disputes/{id}/submit', IssuingDispute._api_submit))
 
 class EphemeralKey(StripeObject):
     object = 'ephemeral_key'
