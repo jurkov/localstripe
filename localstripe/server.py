@@ -322,6 +322,7 @@ for cls in (IssuingAuthorization,):
     
 for cls in (IssuingDispute,):
     for method, url, func in (
+            ('POST', '/v1/' + cls.object.replace('.', '/') + 's', api_create),
             ('GET', '/v1/' + cls.object.replace('.', '/') + 's/{id}', api_retrieve),
             ('GET', '/v1/' + cls.object.replace('.', '/') + 's', api_list_all)):
         app.router.add_route(method, url, func(cls, url))

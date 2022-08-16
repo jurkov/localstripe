@@ -4015,13 +4015,28 @@ class IssuingDispute(StripeObject):
     _id_prefix = 'idp_'
     _id_length = 24
 
-    def __init__(self, amount: int, evidence: dict, transaction: str, currency: str = 'usd', metadata: dict = None):
-
+    def __init__(self, amount: int, transaction: str, currency: str = 'usd', metadata: dict = None, evidence: dict = None):
         try:
-            assert _type(amount) is int
-            assert _type(transaction) is str
-            assert _type(evidence) is dict
-            assert _type(currency) is str and currency in ('usd', 'eur', 'cad', 'gbp')
+            assert type(transaction) is str
+            assert type(currency) is str and currency in ('usd', 'eur', 'cad', 'gbp')
+            if evidence is not None:
+                assert type(evidence) is dict
+                assert 'reason' in evidence.keys()
+                assert evidence['reason'] in ('not_received', 'fraudulent', 'duplicate', 'other', 'merchandise_not_as_described', 'service_not_as_described', 'canceled')
+                if evidence['reason'] == 'not_received':
+                    assert 'not_received' in evidence.keys()
+                if evidence['reason'] == 'fraudulent':
+                    assert 'fraudulent' in evidence.keys()
+                if evidence['reason'] == 'duplicate':
+                    assert 'reason' in evidence.keys()
+                if evidence['reason'] == 'other':
+                    assert 'other' in evidence.keys()
+                if evidence['reason'] == 'merchandise_not_as_described':
+                    assert 'merchandise_not_as_described' in evidence.keys()
+                if evidence['reason'] == 'service_not_as_described':
+                    assert 'service_not_as_described' in evidence.keys()
+                if evidence['reason'] == 'canceled':
+                    assert 'canceled' in evidence.keys()
             if metadata is not None:
                 assert _type(metadata) is dict
         except AssertionError:
@@ -4041,7 +4056,7 @@ class IssuingDispute(StripeObject):
         schedule_webhook(Event('issuing_dispute.created', self))
 
     @classmethod
-    def _api_submit(cls, id: str):
+    def _api_submit(cls, id):
         obj: IssuingDispute = cls._api_retrieve(id)
         obj.status = 'submitted'
         schedule_webhook(Event('issuing_dispute.submitted', obj))
