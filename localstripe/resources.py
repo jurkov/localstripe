@@ -4015,7 +4015,7 @@ class IssuingDispute(StripeObject):
     _id_prefix = 'idp_'
     _id_length = 24
 
-    def __init__(self, amount: int, transaction: str, currency: str = 'usd', metadata: dict = None, evidence: dict = None):
+    def __init__(self, transaction: str, currency: str = 'usd', metadata: dict = None, evidence: dict = None):
         try:
             assert type(transaction) is str
             assert type(currency) is str and currency in ('usd', 'eur', 'cad', 'gbp')
@@ -4044,7 +4044,6 @@ class IssuingDispute(StripeObject):
 
         super().__init__()
 
-        self.amount = amount
         self.status = 'unsubmitted'
         self.evidence = evidence
         self.transaction = transaction
