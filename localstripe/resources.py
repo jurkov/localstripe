@@ -4010,6 +4010,70 @@ class IssuingPaymentTransaction(StripeObject):
 
         redis_master.set(self._store_key(), pickle.dumps(self))
 
+class IssuingDispute(StripeObject):
+    object = 'issuing.dispute'
+    _id_prefix = 'idp_'
+    _id_length = 24
+
+    def __init__(self, amount: int, transaction: str, currency: str = 'usd', metadata: dict = None, evidence: dict = None):
+        try:
+            assert type(transaction) is str
+            assert type(currency) is str and currency in ('usd', 'eur', 'cad', 'gbp')
+            if evidence is not None:
+                assert type(evidence) is dict
+                assert 'reason' in evidence.keys()
+                assert evidence['reason'] in ('not_received', 'fraudulent', 'duplicate', 'other', 'merchandise_not_as_described', 'service_not_as_described', 'canceled')
+                if evidence['reason'] == 'not_received':
+                    assert 'not_received' in evidence.keys()
+                if evidence['reason'] == 'fraudulent':
+                    assert 'fraudulent' in evidence.keys()
+                if evidence['reason'] == 'duplicate':
+                    assert 'reason' in evidence.keys()
+                if evidence['reason'] == 'other':
+                    assert 'other' in evidence.keys()
+                if evidence['reason'] == 'merchandise_not_as_described':
+                    assert 'merchandise_not_as_described' in evidence.keys()
+                if evidence['reason'] == 'service_not_as_described':
+                    assert 'service_not_as_described' in evidence.keys()
+                if evidence['reason'] == 'canceled':
+                    assert 'canceled' in evidence.keys()
+            if metadata is not None:
+                assert _type(metadata) is dict
+        except AssertionError:
+            raise UserError(400, 'Bad request')
+
+        super().__init__()
+
+        self.amount = amount
+        self.status = 'unsubmitted'
+        self.evidence = evidence
+        self.transaction = transaction
+        self.currency = currency
+        self.metadata = metadata
+
+        redis_master.set(self._store_key(), pickle.dumps(self))
+
+        schedule_webhook(Event('issuing_dispute.created', self))
+
+    @classmethod
+    def _api_submit(cls, id):
+        obj: IssuingDispute = cls._api_retrieve(id)
+        obj.status = 'submitted'
+        schedule_webhook(Event('issuing_dispute.submitted', obj))
+        redis_master.set(obj._store_key(), pickle.dumps(obj))
+        return obj
+    
+    @classmethod
+    def _api_list_all(cls, url, transaction=None, **kwargs):
+        if kwargs:
+            raise UserError(400, 'Unexpected ' + ', '.join(kwargs.keys()))
+
+        li = List(url)
+        li._list = list(filter(lambda x: getattr(x, 'transaction', None) == transaction, fetch_all(cls.object + ':*')))
+        return li
+
+extra_apis.append(('POST', '/v1/issuing/disputes/{id}/submit', IssuingDispute._api_submit))
+
 class EphemeralKey(StripeObject):
     object = 'ephemeral_key'
     _id_prefix = 'ephkey_'
