@@ -76,11 +76,12 @@ class StripeObject(object):
 
     @classmethod
     def _api_retrieve(cls, id):
-        obj = pickle.loads(redis_slave.get(cls.object + ':' + id))
-
+        get = redis_slave.get(cls.object + ':' + id)
+        if get is None:
+            raise UserError(404, 'Not Found')
+        obj = pickle.loads(get)
         if obj is None:
             raise UserError(404, 'Not Found')
-
         return obj
 
     @classmethod
@@ -724,7 +725,7 @@ class Dispute(StripeObject):
     @classmethod
     def _api_update(cls, id, **data):
         obj = super()._api_update(id, **data)
-        obj._update
+        #obj._update(**data)
         schedule_webhook(Event('charge.dispute.updated', obj))
         return obj
 
@@ -1273,6 +1274,8 @@ class Invoice(StripeObject):
         self._voided = False
 
         if not simulation and not upcoming:
+            redis_master.set(self._store_key(), pickle.dumps(self))
+
             if subscription is not None:
                 subscription_obj.latest_invoice = self.id
 
@@ -3117,6 +3120,8 @@ class Subscription(StripeObject):
                 metadata=items[0]['metadata'],
                 tax_rates=items[0]['tax_rates']))
 
+        redis_master.set(self._store_key(), pickle.dumps(self))
+
         create_an_invoice = \
             self.trial_end is None and self.trial_period_days is None
         if create_an_invoice:
@@ -3172,6 +3177,8 @@ class Subscription(StripeObject):
                     PaymentMethod._api_retrieve(
                         invoice.charge.payment_method).type == 'sepa_debit'):
                 self.status = 'active'
+        # work around
+        self.latest_invoice = invoice.id
 
     def _on_initial_payment_success(self, invoice):
         self.status = 'active'
@@ -3420,6 +3427,8 @@ class SubscriptionItem(StripeObject):
         self.metadata = metadata or {}
 
         self._subscription = subscription
+
+        redis_master.set(self._store_key(), pickle.dumps(self))
 
     def _current_period(self):
         if self._subscription:
